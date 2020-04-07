@@ -7,7 +7,7 @@ import (
 )
 
 // purely convience types (less typing)
-type Handler func(*ResponseWriter, *Request) error
+type Handler func(http.ResponseWriter, *http.Request) error
 type Middleware func(Handler) Handler
 
 type Server struct {

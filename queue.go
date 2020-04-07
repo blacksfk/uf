@@ -11,45 +11,30 @@ type queue struct {
 
 // create a new queue
 func newQueue(controller Handler, middleware []Middleware) *queue {
-	var next Handler
 	curr := controller
 
 	// call the middleware function with the result of the next middleware
 	// handler as a parameter. Starts from the end, going in reverse order
 	// with the controller as the parameter to the last middleware
 	for i := len(middleware)-1; i >= 0; i-- {
-		next = curr
+		next := curr
 		curr = middleware[i](next)
 	}
 
 	return &queue{curr}
 }
 
-
-// make queue implement http.Handler
+// queue implements http.Handler
 func (q *queue) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// wrap the response with extra methods
-	customResponse := ResponseWriter{w}
-
-	// wrap the request and parse the body
-	customRequest := Request{r, nil}
-	e := customRequest.parseBody()
-
-	if e != nil {
-		handleError(&customResponse, e)
-
-		return
-	}
-
 	// start calling functions in the queue
-	e = q.first(&customResponse, &customRequest)
+	e := q.first(w, r)
 
 	if e != nil {
-		handleError(&customResponse, e)
+		handleError(w, e)
 	}
 }
 
-func handleError(crw *ResponseWriter, e error) {
+func handleError(w http.ResponseWriter, e error) {
 	fmt.Println(e)
 
 	// check if e is already an http error
@@ -61,7 +46,7 @@ func handleError(crw *ResponseWriter, e error) {
 	}
 
 	// send the error to the client
-	e = crw.ErrorJSON(httpError)
+	e = SendErrorJSON(w, httpError)
 
 	if e != nil {
 		// something went incredibly wrong...
