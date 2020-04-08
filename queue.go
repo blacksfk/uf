@@ -16,7 +16,7 @@ func newQueue(controller Handler, middleware []Middleware) *queue {
 	// call the middleware function with the result of the next middleware
 	// handler as a parameter. Starts from the end, going in reverse order
 	// with the controller as the parameter to the last middleware
-	for i := len(middleware)-1; i >= 0; i-- {
+	for i := len(middleware) - 1; i >= 0; i-- {
 		next := curr
 		curr = middleware[i](next)
 	}
