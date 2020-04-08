@@ -37,6 +37,7 @@ func ReadJSON(r *http.Request) ([]byte, error) {
 		return nil, BadRequest("Bad Content-Type: " + ct)
 	}
 
+	defer r.Body.Close()
 	return ioutil.ReadAll(r.Body)
 }
 
