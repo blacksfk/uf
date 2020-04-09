@@ -97,7 +97,7 @@ func TestSendErrorJSON(t *testing.T) {
 	}
 }
 
-func TestReadJSON(t *testing.T) {
+func TestReadBody(t *testing.T) {
 	type testCase struct {
 		method, contentType string
 		body                io.Reader
@@ -127,7 +127,7 @@ func TestReadJSON(t *testing.T) {
 
 		r.Header.Set("Content-Type", c.contentType)
 
-		_, e = ReadJSON(r)
+		_, e = ReadBody(r)
 
 		if e != nil {
 			t.Error(e)
@@ -152,7 +152,7 @@ func TestReadJSON(t *testing.T) {
 
 		r.Header.Set("Content-Type", c.contentType)
 
-		j, e := ReadJSON(r)
+		j, e := ReadBody(r)
 
 		if e == nil {
 			t.Errorf("Invalid JSON decoded: %s", string(j))

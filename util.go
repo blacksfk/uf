@@ -32,7 +32,7 @@ func SendErrorJSON(w http.ResponseWriter, he HttpError) error {
 
 // returns the bytes read from r.Body. Returns an error if the received Content-Type
 // header is not "application/json".
-func ReadJSON(r *http.Request) ([]byte, error) {
+func ReadBody(r *http.Request) ([]byte, error) {
 	if ct := r.Header.Get("Content-Type"); ct != "application/json" {
 		return nil, BadRequest("Bad Content-Type: " + ct)
 	}
