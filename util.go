@@ -46,14 +46,16 @@ func GetParam(r *http.Request, name string) string {
 	return r.URL.Query().Get(":" + name)
 }
 
+// get a URL query parameter as an int64
+func GetParamInt64(r *http.Request, name string) (int64, error) {
+	str := r.URL.Query().Get(":" + name)
+
+	return strconv.ParseInt(str, 10, 0)
+}
+
 // get a URL query parameter type-cast as an int
 func GetParamInt(r *http.Request, name string) (int, error) {
-	str := r.URL.Query().Get(":" + name)
-	i64, e := strconv.ParseInt(str, 10, 0)
+	i64, e := GetParamInt64(r, name)
 
-	if e != nil {
-		return 0, e
-	}
-
-	return int(i64), nil
+	return int(i64), e
 }
