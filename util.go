@@ -5,9 +5,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
-// send a JSON response
+// Send a JSON response
 func SendJSON(w http.ResponseWriter, data interface{}) error {
 	encoder := json.NewEncoder(w)
 
@@ -18,7 +19,7 @@ func SendJSON(w http.ResponseWriter, data interface{}) error {
 	return encoder.Encode(data)
 }
 
-// send an HttpError as a JSON response
+// Send an HttpError as a JSON response
 func SendErrorJSON(w http.ResponseWriter, he HttpError) error {
 	encoder := json.NewEncoder(w)
 
@@ -30,30 +31,48 @@ func SendErrorJSON(w http.ResponseWriter, he HttpError) error {
 	return encoder.Encode(he)
 }
 
-// returns the bytes read from r.Body. Returns an error if the received Content-Type
-// header is not "application/json".
-func ReadBody(r *http.Request) ([]byte, error) {
-	if ct := r.Header.Get("Content-Type"); ct != "application/json" {
-		return nil, BadRequest("Bad Content-Type: " + ct)
+// Returns the bytes read from r.Body. Returns a Bad Request error if the received Content-Type
+// header is does not match any of the provided content types.
+func ReadBody(r *http.Request, contentTypes ...string) ([]byte, error) {
+	if l := len(contentTypes); l > 0 {
+		valid := false
+		ct := r.Header.Get("Content-Type")
+
+		for i := 0; i < l; i++ {
+			if ct == contentTypes[i] {
+				valid = true
+				break
+			}
+		}
+
+		if !valid {
+			b := strings.Builder{}
+			b.WriteString("Bad Content-Type: ")
+			b.WriteString(ct)
+			b.WriteString(". Accept: ")
+			b.WriteString(strings.Join(contentTypes, ", "))
+
+			return nil, BadRequest(b.String())
+		}
 	}
 
 	defer r.Body.Close()
 	return ioutil.ReadAll(r.Body)
 }
 
-// get a URL query parameter
+// Get a URL query parameter
 func GetParam(r *http.Request, name string) string {
 	return r.URL.Query().Get(":" + name)
 }
 
-// get a URL query parameter as an int64
+// Get a URL query parameter as an int64
 func GetParamInt64(r *http.Request, name string) (int64, error) {
 	str := r.URL.Query().Get(":" + name)
 
 	return strconv.ParseInt(str, 10, 0)
 }
 
-// get a URL query parameter type-cast as an int
+// Get a URL query parameter type-cast as an int
 func GetParamInt(r *http.Request, name string) (int, error) {
 	i64, e := GetParamInt64(r, name)
 
