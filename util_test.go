@@ -3,7 +3,6 @@ package microframework
 import (
 	"bytes"
 	"encoding/json"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -98,11 +97,6 @@ func TestSendErrorJSON(t *testing.T) {
 }
 
 func TestReadBody(t *testing.T) {
-	type testCase struct {
-		method, contentType string
-		body                io.Reader
-	}
-
 	b, e := json.Marshal(GT1{"Toyota", "TS020", 1998})
 
 	if e != nil {
@@ -110,53 +104,49 @@ func TestReadBody(t *testing.T) {
 	}
 
 	reader := bytes.NewReader(b)
-	passCases := []testCase{
-		// test methods which have request bodies
-		{http.MethodPost, "application/json", reader},
-		{http.MethodPut, "application/json", reader},
-		{http.MethodPatch, "application/json", reader},
+	r, e := http.NewRequest(http.MethodPost, "http://example.com", reader)
+
+	if e != nil {
+		t.Fatal(e)
 	}
 
-	// loop through and ensure no error has occurred
-	for _, c := range passCases {
-		r, e := http.NewRequest(c.method, "http://example.com", c.body)
+	r.Header.Set("Content-Type", "application/json")
 
-		if e != nil {
-			t.Fatal(e)
-		}
+	// accept any content-type header
+	_, e = ReadBody(r)
 
-		r.Header.Set("Content-Type", c.contentType)
-
-		_, e = ReadBody(r)
-
-		if e != nil {
-			t.Error(e)
-		}
+	if e != nil {
+		t.Error(e)
 	}
 
-	reader = bytes.NewReader([]byte(`<<<<>>>>`))
-	failCases := []testCase{
-		// test methods which have request bodies
-		{http.MethodPost, "application/pdf", reader},
-		{http.MethodPut, "text/text", reader},
-		{http.MethodPatch, "garbage", reader},
+	r, e = http.NewRequest(http.MethodPost, "http://example.com", reader)
+
+	if e != nil {
+		t.Fatal(e)
 	}
 
-	// loop through and ensure an error has occurred
-	for _, c := range failCases {
-		r, e := http.NewRequest(c.method, "http://example.com", c.body)
+	r.Header.Set("Content-Type", "text/plain")
 
-		if e != nil {
-			t.Fatal(e)
-		}
+	// only allow json
+	_, e = ReadBody(r, "application/json")
 
-		r.Header.Set("Content-Type", c.contentType)
+	if e == nil {
+		t.Error("Allowed text/plain when expecting application/json")
+	}
 
-		j, e := ReadBody(r)
+	r, e = http.NewRequest(http.MethodPost, "http://example.com", reader)
 
-		if e == nil {
-			t.Errorf("Invalid JSON decoded: %s", string(j))
-		}
+	r.Header.Set("Content-Type", "application/json")
+
+	if e != nil {
+		t.Fatal(e)
+	}
+
+	// allow both json and x-www-form-urlencoded
+	_, e = ReadBody(r, "application/json", "application/x-www-form-urlencoded")
+
+	if e != nil {
+		t.Error(e)
 	}
 }
 
