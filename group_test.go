@@ -6,7 +6,7 @@ import (
 )
 
 func TestNewGroup(t *testing.T) {
-	server := NewServer(":9001")
+	server := NewServer(&Config{Address: ":9001"})
 	group := server.NewGroup("/nothing", doNothing)
 
 	if len(group.middleware) != 1 {
@@ -15,7 +15,7 @@ func TestNewGroup(t *testing.T) {
 }
 
 func TestGroupMiddleware(t *testing.T) {
-	server := NewServer(":9001")
+	server := NewServer(&Config{Address: ":9001"})
 	group := server.NewGroup("/nothing", doNothing).Middleware(doNothing)
 
 	if len(group.middleware) != 2 {
@@ -24,7 +24,7 @@ func TestGroupMiddleware(t *testing.T) {
 }
 
 func TestGroupMethods(t *testing.T) {
-	server := NewServer(":9100")
+	server := NewServer(&Config{Address: ":9001"})
 	group := server.NewGroup("/nothing", doNothing)
 
 	group.Get(handleNothing, doNothing).Post(handleNothing).Middleware(doNothing, doNothing).Put(handleNothing).Patch(handleNothing).Delete(handleNothing)

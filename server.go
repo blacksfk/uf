@@ -82,22 +82,32 @@ type Middleware func(Handler) Handler
 
 // Wrapper around vestigo.Router
 type Server struct {
-	address string
+	Config *Config
 	*vestigo.Router
 }
 
-// create a new server
-func NewServer(address string) *Server {
-	router := vestigo.NewRouter()
-
-	return &Server{address, router}
+// Server configuration
+type Config struct {
+	Address string
+	Cors *vestigo.CorsAccessControl
 }
 
-// listen for connections on the previously supplied address
-func (server *Server) Start() error {
-	fmt.Printf("Starting server on %s\n", server.address)
+// Create a new server
+func NewServer(config *Config) *Server {
+	router := vestigo.NewRouter()
 
-	return http.ListenAndServe(server.address, server)
+	if config.Cors != nil {
+		router.SetGlobalCors(config.Cors)
+	}
+
+	return &Server{config, router}
+}
+
+// Listen for connections on the previously supplied address
+func (server *Server) Start() error {
+	fmt.Printf("Starting server on %s\n", server.Config.Address)
+
+	return http.ListenAndServe(server.Config.Address, server)
 }
 
 func (server *Server) Get(endpoint string, c Handler, m ...Middleware) {
