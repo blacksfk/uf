@@ -9,7 +9,7 @@ type queue struct {
 	first Handler
 }
 
-// create a new queue
+// Create a new queue
 func newQueue(controller Handler, middleware []Middleware) *queue {
 	curr := controller
 
@@ -24,7 +24,7 @@ func newQueue(controller Handler, middleware []Middleware) *queue {
 	return &queue{curr}
 }
 
-// queue implements http.Handler
+// Queue implements http.Handler
 func (q *queue) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// start calling functions in the queue
 	e := q.first(w, r)
