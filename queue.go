@@ -35,8 +35,6 @@ func (q *queue) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleError(w http.ResponseWriter, e error) {
-	fmt.Println(e)
-
 	// check if e is already an http error
 	httpError, ok := e.(HttpError)
 
