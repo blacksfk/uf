@@ -4,35 +4,38 @@ A tiny framework implementing routing (via vestigo), middleware support, and err
 Example:
 
 import (
-	uf "microframework"
+	uf "github.com/blacksfk/microframework"
 	// ...
 )
 
 func main() {
 	// create a new server
-	server := uf.NewServer(":9001")
+	config := &uf.Config{...}
+	server := uf.NewServer(config, middlewareX, middlewareY)
 
 	// add routes to the server (supports GET, POST, PUT, PATCH, DELETE convenience methods)
-	// middleware functions A, B, C will be called before the handler
+	// middleware functions X, Y, A, B, C will be called before the handler in order
 	server.Get("/book", handler, middlewareA, middlewareB, middlewareC)
 
 	// ...
 
 	// add route groups to the server
-	// middleware functions A, B will be called before each middleware and handler defined below
-	server.Group("/author", middlewareA, middlewareB)
+	// middleware functions X, Y, A, B will be called in order before each middleware
+	// and handler defined below
+	server.Group("/author", middlewareA, middlewareB).
 
-		// middlewareC will be called after A and B but only for GET requests on this route
-		.Get(author.HandleGet, middlewareC)
+		// middlewareC will be called after X, Y, A, and B but only for GET requests on this route
+		Get(author.HandleGet, middlewareC).
 
-		// middlewareD will be called after A and B, for the following route definitions
-		.Middleware(middlewareD)
-		.Post(author.HandlePost)
-		.Put(author.HandlePut)
+		// middlewareD will be called after X, Y, A, and B for the following route definitions
+		Middleware(middlewareD).
+		Post(author.HandlePost).
+		Put(author.HandlePut).
 
-		// middlewareE will be called after A, B, and D but only for PATCH requests on this route
-		.Patch(author.HandlePatch, middlewareE)
-		.Delete(author.HandleDelete)
+		// middlewareE will be called after X, Y, A, B, and D but only for PATCH
+		// requests on this route
+		Patch(author.HandlePatch, middlewareE).
+		Delete(author.HandleDelete)
 
 	// start the server
 	e := server.Start()
@@ -43,7 +46,7 @@ func main() {
 func handler(w http.ResponseWriter, r *http.Request) error {
 	books := database.ObtainBooks()
 
-	return uf.SendJSON(books)
+	return uf.SendJSON(w, books)
 }
 
 func middlewareA(next uf.Handler) uf.Handler {
@@ -77,12 +80,13 @@ import (
 type Handler func(http.ResponseWriter, *http.Request) error
 
 // Middleware are setup functions called once during startup that return intermediary
-// Handler functions which are called after route matching but before the controller
+// Handler functions which are called after route matching but before the controller.
 type Middleware func(Handler) Handler
 
 // Wrapper around vestigo.Router
 type Server struct {
 	Config *Config
+	GlobalMiddleware []Middleware
 	*vestigo.Router
 }
 
@@ -92,15 +96,15 @@ type Config struct {
 	Cors *vestigo.CorsAccessControl
 }
 
-// Create a new server
-func NewServer(config *Config) *Server {
+// Create a new server; optionally specifying global middleware.
+func NewServer(config *Config, m ...Middleware) *Server {
 	router := vestigo.NewRouter()
 
 	if config.Cors != nil {
 		router.SetGlobalCors(config.Cors)
 	}
 
-	return &Server{config, router}
+	return &Server{config, m, router}
 }
 
 // Listen for connections on the previously supplied address
@@ -110,26 +114,45 @@ func (server *Server) Start() error {
 	return http.ListenAndServe(server.Config.Address, server)
 }
 
+// Bind endpoint to the specified method, append the supplied middleware (if any)
+// to the global middleware and create the middleware queue.
+func (server *Server) bind(method, endpoint string, c Handler, m []Middleware) {
+	m = append(server.GlobalMiddleware, m...)
+
+	server.Add(method, endpoint, newQueue(c, m).ServeHTTP)
+}
+
+// Bind endpoint to support GET requests.
 func (server *Server) Get(endpoint string, c Handler, m ...Middleware) {
-	server.Add(http.MethodGet, endpoint, newQueue(c, m).ServeHTTP)
+	server.bind(http.MethodGet, endpoint, c, m)
 }
 
+// Bind endpoint to support POST requests.
 func (server *Server) Post(endpoint string, c Handler, m ...Middleware) {
-	server.Add(http.MethodPost, endpoint, newQueue(c, m).ServeHTTP)
+	server.bind(http.MethodPost, endpoint, c, m)
 }
 
+// Bind endpoint to support PUT requests.
 func (server *Server) Put(endpoint string, c Handler, m ...Middleware) {
-	server.Add(http.MethodPut, endpoint, newQueue(c, m).ServeHTTP)
+	server.bind(http.MethodPut, endpoint, c, m)
 }
 
+// Bind endpoint to support PATCH requests.
 func (server *Server) Patch(endpoint string, c Handler, m ...Middleware) {
-	server.Add(http.MethodPatch, endpoint, newQueue(c, m).ServeHTTP)
+	server.bind(http.MethodPatch, endpoint, c, m)
 }
 
+// Bind endpoint to support DELETE requests.
 func (server *Server) Delete(endpoint string, c Handler, m ...Middleware) {
-	server.Add(http.MethodDelete, endpoint, newQueue(c, m).ServeHTTP)
+	server.bind(http.MethodDelete, endpoint, c, m)
 }
 
+// Append (or set if not existing) middleware to apply to all routes.
+func (server *Server) AddGlobalMiddleware(m ...Middleware) {
+	server.GlobalMiddleware = append(server.GlobalMiddleware, m...)
+}
+
+// Create a group to bind multiple HTTP verbs to a single endpoint concisely
 func (server *Server) NewGroup(endpoint string, routeWide ...Middleware) *Group {
 	return &Group{endpoint, routeWide, server}
 }
