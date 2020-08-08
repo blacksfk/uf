@@ -1,5 +1,6 @@
 # Microframework
-A tiny RESTful, JSON based framework written to help me learn go. Provides routing (via the [Vestigo](https://github.com/husobee/vestigo) package), JSON body encoding and decoding, and a simple error handler with middleware support.
+Small extensions to [Vesitgo](https://github.com/husobee/vestigo) with a set of utility functions.
+I wrote this to help me learn go and therefore will forever be in a state of flux as my skills improve.
 
 # License
 BSD 3-clause
