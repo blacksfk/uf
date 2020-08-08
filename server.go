@@ -11,7 +11,9 @@ import (
 func main() {
 	// create a new server
 	config := &uf.Config{...}
-	server := uf.NewServer(config, middlewareX, middlewareY)
+
+	// middlewareX and Y are middleware that will be applied to every route defined
+	server := uf.NewServer(config, middlewareX, middlewareY, ...)
 
 	// add routes to the server (supports GET, POST, PUT, PATCH, DELETE convenience methods)
 	// middleware functions X, Y, A, B, C will be called before the handler in order
@@ -83,6 +85,10 @@ type Handler func(http.ResponseWriter, *http.Request) error
 // Handler functions which are called after route matching but before the controller.
 type Middleware func(Handler) Handler
 
+// Functions implementing this type are supplied an HttpError if
+// an error occurs while processing a request.
+type ErrorLogger func(error)
+
 // Wrapper around vestigo.Router
 type Server struct {
 	Config *Config
@@ -93,6 +99,7 @@ type Server struct {
 // Server configuration
 type Config struct {
 	Address string
+	ErrorLogger ErrorLogger
 	Cors *vestigo.CorsAccessControl
 }
 
@@ -119,7 +126,7 @@ func (server *Server) Start() error {
 func (server *Server) bind(method, endpoint string, c Handler, m []Middleware) {
 	m = append(server.GlobalMiddleware, m...)
 
-	server.Add(method, endpoint, newQueue(c, m).ServeHTTP)
+	server.Add(method, endpoint, newQueue(c, m, server.Config.ErrorLogger).ServeHTTP)
 }
 
 // Bind endpoint to support GET requests.

@@ -13,7 +13,10 @@ import (
 
 func TestQueue(t *testing.T) {
 	middleware := []Middleware{decodeChar}
-	q := newQueue(controller, middleware)
+	q := newQueue(controller, middleware, func(e error) {
+		t.Errorf("%v", e)
+	})
+
 	ts := httptest.NewServer(q)
 	defer ts.Close()
 
@@ -40,13 +43,23 @@ func TestQueue(t *testing.T) {
 func TestHandleError(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	e := errors.New("You broke the gearbox")
+	errorLogger := func(e error) {
+		// ensure the error logger is called and receives an HttpError
+		_, ok := e.(HttpError)
 
-	handleError(recorder, e)
+		if !ok {
+			t.Errorf("Expected an HttpError, received: %v", e)
+		}
+	}
+
+	q := queue{el: errorLogger}
+
+	q.handleError(recorder, e)
 
 	res := recorder.Result()
 
 	if res.StatusCode != http.StatusInternalServerError {
-		t.Errorf("%v return as error", res)
+		t.Errorf("%v returned as error", res)
 	}
 }
 

@@ -7,10 +7,11 @@ import (
 
 type queue struct {
 	first Handler
+	el ErrorLogger
 }
 
 // Create a new queue
-func newQueue(controller Handler, middleware []Middleware) *queue {
+func newQueue(controller Handler, middleware []Middleware, el ErrorLogger) *queue {
 	curr := controller
 
 	// call the middleware function with the result of the next middleware
@@ -21,7 +22,7 @@ func newQueue(controller Handler, middleware []Middleware) *queue {
 		curr = middleware[i](next)
 	}
 
-	return &queue{curr}
+	return &queue{curr, el}
 }
 
 // Queue implements http.Handler
@@ -30,11 +31,11 @@ func (q *queue) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	e := q.first(w, r)
 
 	if e != nil {
-		handleError(w, e)
+		q.handleError(w, e)
 	}
 }
 
-func handleError(w http.ResponseWriter, e error) {
+func (q *queue) handleError(w http.ResponseWriter, e error) {
 	// check if e is already an http error
 	httpError, ok := e.(HttpError)
 
@@ -43,11 +44,14 @@ func handleError(w http.ResponseWriter, e error) {
 		httpError = InternalServerError(e.Error())
 	}
 
+	// log the error used the supplied function
+	q.el(httpError)
+
 	// send the error to the client
 	e = SendErrorJSON(w, httpError)
 
 	if e != nil {
 		// something went incredibly wrong...
-		fmt.Println(e)
+		q.el(fmt.Errorf("SendErrorJSON(): %v", e))
 	}
 }
