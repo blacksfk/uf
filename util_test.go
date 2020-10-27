@@ -10,8 +10,8 @@ import (
 )
 
 type GT1 struct {
-	manufacturer, model string
-	debut               int
+	Manufacturer, Model string
+	Debut               int
 }
 
 func TestSendJSON(t *testing.T) {
@@ -147,6 +147,47 @@ func TestReadBody(t *testing.T) {
 
 	if e != nil {
 		t.Error(e)
+	}
+}
+
+func TestDecodeBodyJSON(t *testing.T) {
+	m1 := GT1{"Mercedes-Benz", "CLK GTR", 1997}
+	b, e := json.Marshal(m1)
+
+	if e != nil {
+		t.Fatal(e)
+	}
+
+	reader := bytes.NewReader(b)
+	r, e := http.NewRequest(http.MethodPost, "http://example.com", reader)
+
+	if e != nil {
+		t.Fatal(e)
+	}
+
+	r.Header.Set("Content-Type", "application/json")
+
+	m2 := GT1{}
+	e = DecodeBodyJSON(r, &m2)
+
+	if e != nil {
+		t.Fatal(e)
+	}
+
+	if m1.Manufacturer != m2.Manufacturer ||
+		m1.Model != m2.Model ||
+		m1.Debut != m2.Debut {
+
+		t.Fatalf("%+v does not match decoded %+v", m1, m2)
+	}
+
+	r.Header.Set("Content-Type", "text/plain")
+
+	m2 = GT1{}
+	e = DecodeBodyJSON(r, &m2)
+
+	if e == nil {
+		t.Fatal("Decoded body with incorrect content type")
 	}
 }
 

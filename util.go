@@ -60,6 +60,16 @@ func ReadBody(r *http.Request, contentTypes ...string) ([]byte, error) {
 	return ioutil.ReadAll(r.Body)
 }
 
+func DecodeBodyJSON(r *http.Request, ptr interface{}) error {
+	bytes, e := ReadBody(r, "application/json")
+
+	if e != nil {
+		return e
+	}
+
+	return json.Unmarshal(bytes, ptr)
+}
+
 // Get a URL query parameter
 func GetParam(r *http.Request, name string) string {
 	return r.URL.Query().Get(":" + name)
