@@ -33,8 +33,6 @@ func TestGlobalMiddleware(t *testing.T) {
 	}
 }
 
-func middlewareA(next Handler) Handler {
-	return func(w http.ResponseWriter, r *http.Request) error {
-		return next(w, r)
-	}
+func middlewareA(r *http.Request) error {
+	return nil
 }

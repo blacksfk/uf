@@ -6,31 +6,29 @@ import (
 )
 
 type queue struct {
-	first Handler
+	c  Handler
+	m  []Middleware
 	el ErrorLogger
 }
 
-// Create a new queue
-func newQueue(controller Handler, middleware []Middleware, el ErrorLogger) *queue {
-	curr := controller
-
-	// call the middleware function with the result of the next middleware
-	// handler as a parameter. Starts from the end, going in reverse order
-	// with the controller as the parameter to the last middleware
-	for i := len(middleware) - 1; i >= 0; i-- {
-		next := curr
-		curr = middleware[i](next)
-	}
-
-	return &queue{curr, el}
+// Create a new queue.
+func newQueue(c Handler, m []Middleware, el ErrorLogger) *queue {
+	return &queue{c, m, el}
 }
 
-// Queue implements http.Handler
+// Queue implements http.Handler.
 func (q *queue) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// start calling functions in the queue
-	e := q.first(w, r)
+	var e error = nil
 
-	if e != nil {
+	for _, m := range q.m {
+		if e = m(r); e != nil {
+			q.handleError(w, e)
+
+			return
+		}
+	}
+
+	if e = q.c(w, r); e != nil {
 		q.handleError(w, e)
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -72,8 +73,15 @@ func (c *Character) toContext(ctx context.Context) context.Context {
 	return context.WithValue(ctx, "char", c)
 }
 
-func charFromContext(ctx context.Context) *Character {
-	return ctx.Value("char").(*Character)
+func charFromContext(ctx context.Context) (*Character, error) {
+	v := ctx.Value("char")
+	c, ok := v.(*Character)
+
+	if !ok {
+		return nil, fmt.Errorf("Could not assert %v as *Character", v)
+	}
+
+	return c, nil
 }
 
 func charFromJSON(bytes []byte) (*Character, error) {
@@ -83,32 +91,30 @@ func charFromJSON(bytes []byte) (*Character, error) {
 	return c, e
 }
 
-func decodeChar(next Handler) Handler {
-	return func(w http.ResponseWriter, r *http.Request) error {
-		defer r.Body.Close()
-		bytes, e := ioutil.ReadAll(r.Body)
+func decodeChar(r *http.Request) error {
+	defer r.Body.Close()
+	bytes, e := ioutil.ReadAll(r.Body)
 
-		if e != nil {
-			return e
-		}
-
-		c, e := charFromJSON(bytes)
-
-		if e != nil {
-			return e
-		}
-
-		r = r.WithContext(c.toContext(r.Context()))
-
-		return next(w, r)
+	if e != nil {
+		return e
 	}
+
+	c, e := charFromJSON(bytes)
+
+	if e != nil {
+		return e
+	}
+
+	*r = *r.WithContext(c.toContext(r.Context()))
+
+	return nil
 }
 
 func controller(w http.ResponseWriter, r *http.Request) error {
-	c := charFromContext(r.Context())
+	_, e := charFromContext(r.Context())
 
-	if c == nil {
-		return InternalServerError("Character not in context")
+	if e != nil {
+		return e
 	}
 
 	w.WriteHeader(http.StatusOK)

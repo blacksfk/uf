@@ -34,10 +34,8 @@ func TestGroupMethods(t *testing.T) {
 	}
 }
 
-func doNothing(next Handler) Handler {
-	return func(w http.ResponseWriter, r *http.Request) error {
-		return next(w, r)
-	}
+func doNothing(r *http.Request) error {
+	return nil
 }
 
 func handleNothing(w http.ResponseWriter, r *http.Request) error {

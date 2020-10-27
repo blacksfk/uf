@@ -51,23 +51,21 @@ func handler(w http.ResponseWriter, r *http.Request) error {
 	return uf.SendJSON(w, books)
 }
 
-func middlewareA(next uf.Handler) uf.Handler {
-	return func(w http.ResponseWriter, r *http.Request) error {
-		// get the auth key and user (somehow)
-		key := r.Header.Get("Authorization")
-		user := database.FindUser()
+func middlewareA(r *http.Request) error {
+	// get the auth key and user (somehow)
+	key := r.Header.Get("Authorization")
+	user := database.FindUser()
 
-		if !user.Valid(key) {
-			// user needs to re-authenticate
-			return uf.Unauthorized("Invalid login")
-		}
-
-		// authenticated
-		r = r.WithContext(user.ToContext(r.Context()))
-
-		// progress to next handler
-		return next(w, r)
+	if !user.Valid(key) {
+		// user needs to re-authenticate
+		return uf.Unauthorized("Invalid login")
 	}
+
+	// authenticated
+	*r = *r.WithContext(user.ToContext(r.Context()))
+
+	// progress to next handler
+	return nil
 }
 */
 package microframework
@@ -81,9 +79,9 @@ import (
 // Extension of http.Handler that returns an error to the framework's error handler
 type Handler func(http.ResponseWriter, *http.Request) error
 
-// Middleware are setup functions called once during startup that return intermediary
-// Handler functions which are called after route matching but before the controller.
-type Middleware func(Handler) Handler
+// Middleware functions are called in order after route matching but
+// before the Handler.
+type Middleware func(*http.Request) error
 
 // Functions implementing this type are supplied an HttpError if
 // an error occurs while processing a request.
@@ -91,16 +89,16 @@ type ErrorLogger func(error)
 
 // Wrapper around vestigo.Router
 type Server struct {
-	Config *Config
+	Config           *Config
 	GlobalMiddleware []Middleware
 	*vestigo.Router
 }
 
 // Server configuration
 type Config struct {
-	Address string
+	Address     string
 	ErrorLogger ErrorLogger
-	Cors *vestigo.CorsAccessControl
+	Cors        *vestigo.CorsAccessControl
 }
 
 // Create a new server; optionally specifying global middleware.
@@ -115,51 +113,51 @@ func NewServer(config *Config, m ...Middleware) *Server {
 }
 
 // Listen for connections on the previously supplied address
-func (server *Server) Start() error {
-	fmt.Printf("Starting server on %s\n", server.Config.Address)
+func (s *Server) Start() error {
+	fmt.Printf("Starting server on %s\n", s.Config.Address)
 
-	return http.ListenAndServe(server.Config.Address, server)
+	return http.ListenAndServe(s.Config.Address, s)
 }
 
 // Bind endpoint to the specified method, append the supplied middleware (if any)
 // to the global middleware and create the middleware queue.
-func (server *Server) bind(method, endpoint string, c Handler, m []Middleware) {
-	m = append(server.GlobalMiddleware, m...)
+func (s *Server) bind(method, endpoint string, c Handler, m []Middleware) {
+	m = append(s.GlobalMiddleware, m...)
 
-	server.Add(method, endpoint, newQueue(c, m, server.Config.ErrorLogger).ServeHTTP)
+	s.Add(method, endpoint, newQueue(c, m, s.Config.ErrorLogger).ServeHTTP)
 }
 
 // Bind endpoint to support GET requests.
-func (server *Server) Get(endpoint string, c Handler, m ...Middleware) {
-	server.bind(http.MethodGet, endpoint, c, m)
+func (s *Server) Get(endpoint string, c Handler, m ...Middleware) {
+	s.bind(http.MethodGet, endpoint, c, m)
 }
 
 // Bind endpoint to support POST requests.
-func (server *Server) Post(endpoint string, c Handler, m ...Middleware) {
-	server.bind(http.MethodPost, endpoint, c, m)
+func (s *Server) Post(endpoint string, c Handler, m ...Middleware) {
+	s.bind(http.MethodPost, endpoint, c, m)
 }
 
 // Bind endpoint to support PUT requests.
-func (server *Server) Put(endpoint string, c Handler, m ...Middleware) {
-	server.bind(http.MethodPut, endpoint, c, m)
+func (s *Server) Put(endpoint string, c Handler, m ...Middleware) {
+	s.bind(http.MethodPut, endpoint, c, m)
 }
 
 // Bind endpoint to support PATCH requests.
-func (server *Server) Patch(endpoint string, c Handler, m ...Middleware) {
-	server.bind(http.MethodPatch, endpoint, c, m)
+func (s *Server) Patch(endpoint string, c Handler, m ...Middleware) {
+	s.bind(http.MethodPatch, endpoint, c, m)
 }
 
 // Bind endpoint to support DELETE requests.
-func (server *Server) Delete(endpoint string, c Handler, m ...Middleware) {
-	server.bind(http.MethodDelete, endpoint, c, m)
+func (s *Server) Delete(endpoint string, c Handler, m ...Middleware) {
+	s.bind(http.MethodDelete, endpoint, c, m)
 }
 
 // Append (or set if not existing) middleware to apply to all routes.
-func (server *Server) AddGlobalMiddleware(m ...Middleware) {
-	server.GlobalMiddleware = append(server.GlobalMiddleware, m...)
+func (s *Server) AddGlobalMiddleware(m ...Middleware) {
+	s.GlobalMiddleware = append(s.GlobalMiddleware, m...)
 }
 
 // Create a group to bind multiple HTTP verbs to a single endpoint concisely
-func (server *Server) NewGroup(endpoint string, routeWide ...Middleware) *Group {
-	return &Group{endpoint, routeWide, server}
+func (s *Server) NewGroup(endpoint string, routeWide ...Middleware) *Group {
+	return &Group{endpoint, routeWide, s}
 }
