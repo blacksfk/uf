@@ -16,12 +16,15 @@ func TestQueue(t *testing.T) {
 	middleware := []Middleware{decodeChar}
 	q := newQueue(controller, middleware, func(e error) {
 		t.Errorf("%v", e)
-	})
+	}, nil)
 
+	// create a test server with the queue
 	ts := httptest.NewServer(q)
 	defer ts.Close()
 
 	reader := bytes.NewReader([]byte(`{"name": "Shao Khan", "wins": 9}`))
+
+	// use the test server's URL as the address
 	req, e := http.NewRequest(http.MethodPost, ts.URL, reader)
 
 	if e != nil {
@@ -30,6 +33,8 @@ func TestQueue(t *testing.T) {
 
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
+
+	// send the request to the test server
 	res, e := client.Do(req)
 
 	if e != nil {

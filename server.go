@@ -87,6 +87,10 @@ type Middleware func(*http.Request) error
 // an error occurs while processing a request.
 type ErrorLogger func(error)
 
+// Functions implementing this type are supplied the request and duration
+// of the request along with an appropriate unit i.e. m, u, or n.
+type AccessLogger func(*http.Request, int64, string)
+
 // Wrapper around vestigo.Router
 type Server struct {
 	Config           *Config
@@ -96,9 +100,26 @@ type Server struct {
 
 // Server configuration
 type Config struct {
-	Address     string
+	// Address to listen on. Eg. ":6060"
+	Address string
+
+	// Logs errors that occur during requests
 	ErrorLogger ErrorLogger
-	Cors        *vestigo.CorsAccessControl
+
+	// Logs requests
+	AccessLogger AccessLogger
+
+	// CORS configuration as per vestigo.
+	// Eg.:
+	// &vestigo.CorsAccessControl{
+	//   AllowOrigin: []string{"*"},
+	//   AllowCredentials: true,
+	//   ExposeHeaders: []string{"*"},
+	//   MaxAge: time.Hour,
+	//   AllowMethods: []string{"GET", "POST", ...},
+	//   AllowHeaders: []string{"Content-Type", ...},
+	// }
+	Cors *vestigo.CorsAccessControl
 }
 
 // Create a new server; optionally specifying global middleware.
@@ -124,7 +145,7 @@ func (s *Server) Start() error {
 func (s *Server) bind(method, endpoint string, c Handler, m []Middleware) {
 	m = append(s.GlobalMiddleware, m...)
 
-	s.Add(method, endpoint, newQueue(c, m, s.Config.ErrorLogger).ServeHTTP)
+	s.Add(method, endpoint, newQueue(c, m, s.Config.ErrorLogger, s.Config.AccessLogger).ServeHTTP)
 }
 
 // Bind endpoint to support GET requests.
