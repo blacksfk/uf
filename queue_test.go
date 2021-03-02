@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -98,7 +98,7 @@ func charFromJSON(bytes []byte) (*Character, error) {
 
 func decodeChar(r *http.Request) error {
 	defer r.Body.Close()
-	bytes, e := ioutil.ReadAll(r.Body)
+	bytes, e := io.ReadAll(r.Body)
 
 	if e != nil {
 		return e

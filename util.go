@@ -2,7 +2,7 @@ package microframework
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -57,7 +57,7 @@ func ReadBody(r *http.Request, contentTypes ...string) ([]byte, error) {
 	}
 
 	defer r.Body.Close()
-	return ioutil.ReadAll(r.Body)
+	return io.ReadAll(r.Body)
 }
 
 func DecodeBodyJSON(r *http.Request, ptr interface{}) error {

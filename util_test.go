@@ -3,7 +3,7 @@ package microframework
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -38,7 +38,7 @@ func TestSendJSON(t *testing.T) {
 	defer res.Body.Close()
 	// check the correct content type was set and decode the body
 	checkContentType(t, res)
-	b, e := ioutil.ReadAll(res.Body)
+	b, e := io.ReadAll(res.Body)
 
 	if e != nil {
 		t.Fatal(e)
@@ -76,7 +76,7 @@ func TestSendErrorJSON(t *testing.T) {
 	defer res.Body.Close()
 	// ensure the correct content type and decode the body
 	checkContentType(t, res)
-	b, e := ioutil.ReadAll(res.Body)
+	b, e := io.ReadAll(res.Body)
 
 	if e != nil {
 		t.Fatal(e)
