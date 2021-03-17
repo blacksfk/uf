@@ -6,7 +6,12 @@ import (
 	"time"
 )
 
-type queue struct {
+// Queue handles errors returned from middleware and handlers
+// along with implementing http.Handler. A Queue should not be
+// created directly, and is only exposed to serve testing purposes
+// with the httptest library (or alternatives) using the NewHttpTestHandler
+// factory method.
+type Queue struct {
 	c  Handler
 	m  []Middleware
 	el ErrorLogger
@@ -14,12 +19,18 @@ type queue struct {
 }
 
 // Create a new queue.
-func newQueue(c Handler, m []Middleware, el ErrorLogger, al AccessLogger) *queue {
-	return &queue{c, m, el, al}
+func newQueue(c Handler, m []Middleware, el ErrorLogger, al AccessLogger) *Queue {
+	return &Queue{c, m, el, al}
+}
+
+// Create a test queue in order to use and test the microframework.Handler
+// with functions that only accept http.Handler. Eg. httptest.NewServer.
+func NewHttpTestHandler(h Handler) http.Handler {
+	return &Queue{c: h}
 }
 
 // Queue implements http.Handler.
-func (q *queue) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (q *Queue) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if q.al != nil {
 		// access logger was provided
 		start := time.Now()
@@ -45,7 +56,7 @@ func (q *queue) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // Calculate the difference between start and now as an absolute value
 // with an appropriate unit (ms, us, ns).
-func (q *queue) logAccess(r *http.Request, start time.Time) {
+func (q *Queue) logAccess(r *http.Request, start time.Time) {
 	var duration int64
 	var unit string
 	magnitude := time.Since(start)
@@ -66,7 +77,7 @@ func (q *queue) logAccess(r *http.Request, start time.Time) {
 	q.al(r, duration, unit)
 }
 
-func (q *queue) handleError(w http.ResponseWriter, e error) {
+func (q *Queue) handleError(w http.ResponseWriter, e error) {
 	// check if e is already an http error
 	httpError, ok := e.(HttpError)
 

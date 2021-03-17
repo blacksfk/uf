@@ -58,7 +58,7 @@ func TestHandleError(t *testing.T) {
 		}
 	}
 
-	q := queue{el: errorLogger}
+	q := Queue{el: errorLogger}
 
 	q.handleError(recorder, e)
 
