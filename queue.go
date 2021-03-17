@@ -75,8 +75,10 @@ func (q *queue) handleError(w http.ResponseWriter, e error) {
 		httpError = InternalServerError(e.Error())
 	}
 
-	// log the error used the supplied function
-	q.el(httpError)
+	// log the error to the supplied function
+	if q.el != nil {
+		q.el(httpError)
+	}
 
 	// send the error to the client
 	e = SendErrorJSON(w, httpError)
