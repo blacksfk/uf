@@ -14,9 +14,13 @@ import (
 
 func TestQueue(t *testing.T) {
 	middleware := []Middleware{decodeChar}
-	q := newQueue(controller, middleware, func(e error) {
-		t.Errorf("%v", e)
-	}, nil)
+	config := &Config{
+		ErrorLogger: func(e error) {
+			t.Error(e)
+		},
+	}
+
+	q := newQueue(controller, middleware, config)
 
 	// create a test server with the queue
 	ts := httptest.NewServer(q)

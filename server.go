@@ -1,5 +1,5 @@
 /*
-A tiny framework implementing routing (via vestigo), middleware support, and error handling.
+A set of utility functions and a router provided by HTTPRouter (https://github.com/julienschmidt/httprouter).
 
 Example:
 
@@ -14,6 +14,21 @@ func main() {
 
 	// middlewareX and Y are middleware that will be applied to every route defined
 	server := uf.NewServer(config, middlewareX, middlewareY, ...)
+
+	// configure CORS or any other settings exported by HTTPRouter
+	server.GlobalOPTIONS = func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Access-Control-Request-Method") != "" {
+			h := w.Header()
+
+			h.Set("Access-Control-Allow-Methods", header.Get("Allow"))
+			h.Set("Access-Control-Allow-Origin", "example.com")
+
+			// ...
+		}
+
+		// reply to options
+		w.WriteHeader(http.StatusNoContent)
+	}
 
 	// add routes to the server (supports GET, POST, PUT, PATCH, DELETE convenience methods)
 	// middleware functions X, Y, A, B, C will be called before the handler in order
@@ -72,7 +87,7 @@ package microframework
 
 import (
 	"fmt"
-	"github.com/husobee/vestigo"
+	"github.com/julienschmidt/httprouter"
 	"net/http"
 )
 
@@ -95,7 +110,7 @@ type AccessLogger func(*http.Request, int64, string)
 type Server struct {
 	Config           *Config
 	GlobalMiddleware []Middleware
-	*vestigo.Router
+	*httprouter.Router
 }
 
 // Server configuration
@@ -108,29 +123,11 @@ type Config struct {
 
 	// Logs requests
 	AccessLogger AccessLogger
-
-	// CORS configuration as per vestigo.
-	// Eg.:
-	// &vestigo.CorsAccessControl{
-	//   AllowOrigin: []string{"*"},
-	//   AllowCredentials: true,
-	//   ExposeHeaders: []string{"*"},
-	//   MaxAge: time.Hour,
-	//   AllowMethods: []string{"GET", "POST", ...},
-	//   AllowHeaders: []string{"Content-Type", ...},
-	// }
-	Cors *vestigo.CorsAccessControl
 }
 
 // Create a new server; optionally specifying global middleware.
 func NewServer(config *Config, m ...Middleware) *Server {
-	router := vestigo.NewRouter()
-
-	if config.Cors != nil {
-		router.SetGlobalCors(config.Cors)
-	}
-
-	return &Server{config, m, router}
+	return &Server{config, m, httprouter.New()}
 }
 
 // Listen for connections on the previously supplied address
@@ -142,10 +139,10 @@ func (s *Server) Start() error {
 
 // Bind endpoint to the specified method, append the supplied middleware (if any)
 // to the global middleware and create the middleware queue.
-func (s *Server) bind(method, endpoint string, c Handler, m []Middleware) {
+func (s *Server) bind(method, endpoint string, h Handler, m []Middleware) {
 	m = append(s.GlobalMiddleware, m...)
 
-	s.Add(method, endpoint, newQueue(c, m, s.Config.ErrorLogger, s.Config.AccessLogger).ServeHTTP)
+	s.Handler(method, endpoint, newQueue(h, m, s.Config))
 }
 
 // Bind endpoint to support GET requests.

@@ -19,8 +19,8 @@ type Queue struct {
 }
 
 // Create a new queue.
-func newQueue(c Handler, m []Middleware, el ErrorLogger, al AccessLogger) *Queue {
-	return &Queue{c, m, el, al}
+func newQueue(c Handler, m []Middleware, config *Config) *Queue {
+	return &Queue{c, m, config.ErrorLogger, config.AccessLogger}
 }
 
 // Create a test queue in order to use and test the microframework.Handler

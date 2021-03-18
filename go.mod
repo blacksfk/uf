@@ -2,4 +2,4 @@ module github.com/blacksfk/microframework
 
 go 1.14
 
-require github.com/husobee/vestigo v1.1.1
+require github.com/julienschmidt/httprouter v1.3.0
