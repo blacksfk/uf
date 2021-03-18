@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/julienschmidt/httprouter"
 )
 
 // Send a JSON response
@@ -72,19 +74,43 @@ func DecodeBodyJSON(r *http.Request, ptr interface{}) error {
 	return json.Unmarshal(bytes, ptr)
 }
 
-// Get a URL query parameter
+// Get a URL parameter.
+//
+// In order to test handlers that require parameters to operate,
+// a mock request should be created and the context manipulated so that
+// the params are embedded within the context.
+// Example (error handling omitted for the sake of brevity):
+//
+// // URL: example.com/mk/:char/result/:tournament
+// params := httprouter.Params{
+// 		{Key: "char", Value: "Kitana"},
+// 		{Key: "tournament", Value: "10"},
+// }
+//
+// // create and embed the context in the request
+// ctx := context.WithValue(context.Background(), httprouter.ParamsKey, params)
+// r, _ := http.NewRequestWithContext(ctx, http.MethodGet, "example.com", nil)
+// w := http.NewRecorder()
+//
+// controller.Handle(w, r)
+//
+// // determine whether the test case passes...
 func GetParam(r *http.Request, name string) string {
-	return r.URL.Query().Get(":" + name)
+	params := httprouter.ParamsFromContext(r.Context())
+
+	return params.ByName(name)
 }
 
-// Get a URL query parameter as an int64
+// Get a URL parameter as an int64. See GetParam for an example on how
+// to test parameters in handlers.
 func GetParamInt64(r *http.Request, name string) (int64, error) {
-	str := r.URL.Query().Get(":" + name)
+	str := GetParam(r, name)
 
 	return strconv.ParseInt(str, 10, 0)
 }
 
-// Get a URL query parameter type-cast as an int
+// Get a URL parameter type-cast as an int. See GetParam for an example
+// on how to test parameters in handlers.
 func GetParamInt(r *http.Request, name string) (int, error) {
 	i64, e := GetParamInt64(r, name)
 
