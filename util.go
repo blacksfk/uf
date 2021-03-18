@@ -1,6 +1,7 @@
 package microframework
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -77,19 +78,15 @@ func DecodeBodyJSON(r *http.Request, ptr interface{}) error {
 // Get a URL parameter.
 //
 // In order to test handlers that require parameters to operate,
-// a mock request should be created and the context manipulated so that
-// the params are embedded within the context.
+// a mock request shoud be created and then passed to EmbedParams with the
+// parameters the controller method needs to perform its task.
 // Example (error handling omitted for the sake of brevity):
 //
-// // URL: example.com/mk/:char/result/:tournament
-// params := httprouter.Params{
-// 		{Key: "char", Value: "Kitana"},
-// 		{Key: "tournament", Value: "10"},
-// }
+// // URL: example.com/mk/:char
+// r, _ := http.NewRequest(http.MethodGet, "example.com/mk/kitana", nil)
 //
-// // create and embed the context in the request
-// ctx := context.WithValue(context.Background(), httprouter.ParamsKey, params)
-// r, _ := http.NewRequestWithContext(ctx, http.MethodGet, "example.com", nil)
+// uf.EmbedParams(r, httprouter.Param{Key: "char", Value: "kitana"}, ...)
+//
 // w := http.NewRecorder()
 //
 // controller.Handle(w, r)
@@ -115,4 +112,17 @@ func GetParamInt(r *http.Request, name string) (int, error) {
 	i64, e := GetParamInt64(r, name)
 
 	return int(i64), e
+}
+
+// Embed httprouter.Param into a request's context. To be used for testing
+// purposes only.
+func EmbedParams(r *http.Request, params ...httprouter.Param) {
+	// cast to httprouter.Params
+	p := httprouter.Params(params)
+
+	// embed in the context
+	ctx := context.WithValue(r.Context(), httprouter.ParamsKey, p)
+
+	// assign new context to the request
+	*r = *r.WithContext(ctx)
 }
