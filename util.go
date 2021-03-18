@@ -32,7 +32,7 @@ func SendErrorJSON(w http.ResponseWriter, he HttpError) error {
 }
 
 // Returns the bytes read from r.Body. Returns a Bad Request error if the received Content-Type
-// header is does not match any of the provided content types.
+// header does not match any of the provided content types.
 func ReadBody(r *http.Request, contentTypes ...string) ([]byte, error) {
 	if l := len(contentTypes); l > 0 {
 		valid := false
@@ -60,6 +60,8 @@ func ReadBody(r *http.Request, contentTypes ...string) ([]byte, error) {
 	return io.ReadAll(r.Body)
 }
 
+// Decode the request body into ptr. Returns a 400 Bad Request error if the
+// received Content-Type header is not application/json.
 func DecodeBodyJSON(r *http.Request, ptr interface{}) error {
 	bytes, e := ReadBody(r, "application/json")
 
