@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/julienschmidt/httprouter"
 )
 
 type GT1 struct {
@@ -194,5 +196,41 @@ func TestDecodeBodyJSON(t *testing.T) {
 func checkContentType(t *testing.T, res *http.Response) {
 	if ct := res.Header.Get("Content-Type"); ct != "application/json" {
 		t.Errorf("SendJSON set incorrect Content-Type header: %s", ct)
+	}
+}
+
+// Does it embed the params into the context?
+func TestEmbedParams(t *testing.T) {
+	// create parameters to be embedded
+	embedded := httprouter.Params{
+		{Key: "char", Value: "Kitana"},
+		{Key: "tournament", Value: "10"},
+	}
+
+	// create a new mock request
+	r, e := http.NewRequest(http.MethodGet, "example.com", nil)
+
+	if e != nil {
+		t.Fatal(e)
+	}
+
+	// embed the parameters in the request
+	EmbedParams(r, embedded...)
+
+	// extract the parameters from the request's context
+	extracted := httprouter.ParamsFromContext(r.Context())
+
+	lm := len(embedded)
+	lx := len(extracted)
+
+	if lm != lx {
+		t.Fatalf("Expected %d params. Actual: %d.", lm, lx)
+	}
+
+	// loop and verify struct members
+	for i := 0; i < lm; i++ {
+		if embedded[i].Key != extracted[i].Key || embedded[i].Value != extracted[i].Value {
+			t.Fatalf("Expected: %+v. Actual: %+v.", embedded[i], extracted[i])
+		}
 	}
 }
