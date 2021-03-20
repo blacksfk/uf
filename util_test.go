@@ -193,6 +193,36 @@ func TestDecodeBodyJSON(t *testing.T) {
 	}
 }
 
+// Does it reject malformed requests with a 400 Bad Request error?
+func TestDecodeBodyJSONMalformed(t *testing.T) {
+	// invalid json
+	b := []byte(`{"manu\facturer": Porsche, "model": "911 GT-98", "debut": 19\98`)
+	r, e := http.NewRequest(http.MethodPost, "http://examle.com", bytes.NewReader(b))
+
+	if e != nil {
+		t.Fatal(e)
+	}
+
+	r.Header.Set("Content-Type", "application/json")
+
+	porsche := GT1{}
+	e = DecodeBodyJSON(r, &porsche)
+
+	if e == nil {
+		t.Fatal("Expected: 400 Bad Request error. Actual: nil.")
+	}
+
+	he, ok := e.(HttpError)
+
+	if !ok {
+		t.Fatalf("Expected: 400 Bad Request error. Actual: %s.", e)
+	}
+
+	if he.Code != http.StatusBadRequest {
+		t.Fatalf("Expected: %d. Actual: %d.", http.StatusBadRequest, he.Code)
+	}
+}
+
 func checkContentType(t *testing.T, res *http.Response) {
 	if ct := res.Header.Get("Content-Type"); ct != "application/json" {
 		t.Errorf("SendJSON set incorrect Content-Type header: %s", ct)
