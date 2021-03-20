@@ -72,7 +72,36 @@ func DecodeBodyJSON(r *http.Request, ptr interface{}) error {
 		return e
 	}
 
-	return json.Unmarshal(bytes, ptr)
+	e = json.Unmarshal(bytes, ptr)
+
+	if e == nil {
+		// no issue so bail early
+		return nil
+	}
+
+	_, ok := e.(HttpError)
+
+	if ok {
+		// bad content type encountered
+		return e
+	}
+
+	se, ok := e.(*json.SyntaxError)
+
+	if ok {
+		// malformed JSON body
+		return BadRequest(se.Error())
+	}
+
+	_, ok = e.(*json.InvalidUnmarshalError)
+
+	if ok {
+		// programmer error
+		return InternalServerError("DecodeBodyJSON requires a pointer")
+	}
+
+	// some other error
+	return e
 }
 
 // Get a URL parameter.
