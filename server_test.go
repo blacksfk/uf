@@ -8,7 +8,7 @@ import (
 var expected string = "AB"
 
 func TestNewServer(t *testing.T) {
-	c := &Config{Address: ":9001"}
+	c := &Config{}
 	s := NewServer(c)
 
 	if len(s.GlobalMiddleware) != 0 {
@@ -19,7 +19,7 @@ func TestNewServer(t *testing.T) {
 }
 
 func TestGlobalMiddleware(t *testing.T) {
-	c := &Config{Address: ":9001"}
+	c := &Config{}
 	s := NewServer(c, middlewareA)
 
 	if l := len(s.GlobalMiddleware); l != 1 {

@@ -55,7 +55,7 @@ func main() {
 		Delete(author.HandleDelete)
 
 	// start the server
-	e := server.Start()
+	e := http.ListenAndServe("localhost:6060", server)
 
 	// ...
 }
@@ -86,7 +86,6 @@ func middlewareA(r *http.Request) error {
 package microframework
 
 import (
-	"fmt"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
 )
@@ -115,9 +114,6 @@ type Server struct {
 
 // Server configuration
 type Config struct {
-	// Address to listen on. Eg. ":6060"
-	Address string
-
 	// Logs errors that occur during requests
 	ErrorLogger ErrorLogger
 
@@ -128,13 +124,6 @@ type Config struct {
 // Create a new server; optionally specifying global middleware.
 func NewServer(config *Config, m ...Middleware) *Server {
 	return &Server{config, m, httprouter.New()}
-}
-
-// Listen for connections on the previously supplied address
-func (s *Server) Start() error {
-	fmt.Printf("Starting server on %s\n", s.Config.Address)
-
-	return http.ListenAndServe(s.Config.Address, s)
 }
 
 // Bind endpoint to the specified method, append the supplied middleware (if any)
