@@ -150,6 +150,33 @@ func TestReadBody(t *testing.T) {
 	if e != nil {
 		t.Error(e)
 	}
+
+	r, e = http.NewRequest(http.MethodPost, "http://example.com", reader)
+
+	if e != nil {
+		t.Fatal(e)
+	}
+
+	// json with charset
+	r.Header.Set("Content-Type", "application/json; charset=UTF-8")
+
+	// allow only json
+	_, e = ReadBody(r, "application/json")
+
+	// the trailing charset shoud not cause an error
+	if e != nil {
+		t.Error(e)
+	}
+
+	// extra trailing directives
+	r.Header.Set("Content-Type", "application/json; charset=UTF-8; boundary=something")
+
+	_, e = ReadBody(r, "application/json")
+
+	// should not cause an error
+	if e != nil {
+		t.Error(e)
+	}
 }
 
 func TestDecodeBodyJSON(t *testing.T) {
