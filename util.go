@@ -38,8 +38,9 @@ func SendErrorJSON(w http.ResponseWriter, he HttpError) error {
 // header does not match any of the provided content types.
 func ReadBody(r *http.Request, contentTypes ...string) ([]byte, error) {
 	if l := len(contentTypes); l > 0 {
+		// extract the media-type portion of the content-type header
+		ct := strings.Split(r.Header.Get("Content-Type"), ";")[0]
 		valid := false
-		ct := r.Header.Get("Content-Type")
 
 		for i := 0; i < l; i++ {
 			if ct == contentTypes[i] {
