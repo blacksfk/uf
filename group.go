@@ -1,4 +1,4 @@
-package microframework
+package uf
 
 // Stores the underlying endpoint, route-wide middleware, and server
 type Group struct {

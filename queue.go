@@ -1,4 +1,4 @@
-package microframework
+package uf
 
 import (
 	"fmt"
@@ -23,7 +23,7 @@ func newQueue(c Handler, m []Middleware, config *Config) *Queue {
 	return &Queue{c, m, config.ErrorLogger, config.AccessLogger}
 }
 
-// Create a test queue in order to use and test the microframework.Handler
+// Create a test queue in order to use and test the uf.Handler
 // with functions that only accept http.Handler. Eg. httptest.NewServer.
 func NewHttpTestHandler(h Handler) http.Handler {
 	return &Queue{c: h}

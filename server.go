@@ -4,7 +4,7 @@ A set of utility functions and a router provided by HTTPRouter (https://github.c
 Example:
 
 import (
-	uf "github.com/blacksfk/microframework"
+	"github.com/blacksfk/uf"
 	// ...
 )
 
@@ -83,7 +83,7 @@ func middlewareA(r *http.Request) error {
 	return nil
 }
 */
-package microframework
+package uf
 
 import (
 	"github.com/julienschmidt/httprouter"

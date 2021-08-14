@@ -1,4 +1,4 @@
-module github.com/blacksfk/microframework
+module github.com/blacksfk/uf
 
 go 1.14
 
