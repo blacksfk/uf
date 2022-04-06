@@ -144,14 +144,20 @@ func GetParamInt(r *http.Request, name string) (int, error) {
 	return int(i64), e
 }
 
-// Embed httprouter.Param into a request's context. To be used for testing
+type Param httprouter.Param
+
+// Embed Param into a request's context. To be used for testing
 // purposes only.
-func EmbedParams(r *http.Request, params ...httprouter.Param) {
-	// cast to httprouter.Params
-	p := httprouter.Params(params)
+func EmbedParams(r *http.Request, params ...Param) {
+	// unwrap each param as an httprouter.Param
+	var unwrapped httprouter.Params
+
+	for _, param := range params {
+		unwrapped = append(unwrapped, httprouter.Param(param))
+	}
 
 	// embed in the context
-	ctx := context.WithValue(r.Context(), httprouter.ParamsKey, p)
+	ctx := context.WithValue(r.Context(), httprouter.ParamsKey, unwrapped)
 
 	// assign new context to the request
 	*r = *r.WithContext(ctx)

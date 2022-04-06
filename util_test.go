@@ -259,10 +259,9 @@ func checkContentType(t *testing.T, res *http.Response) {
 // Does it embed the params into the context?
 func TestEmbedParams(t *testing.T) {
 	// create parameters to be embedded
-	embedded := httprouter.Params{
+	em := []Param{
 		{Key: "char", Value: "Kitana"},
-		{Key: "tournament", Value: "10"},
-	}
+		{Key: "tournament", Value: "10"}}
 
 	// create a new mock request
 	r, e := http.NewRequest(http.MethodGet, "example.com", nil)
@@ -272,13 +271,13 @@ func TestEmbedParams(t *testing.T) {
 	}
 
 	// embed the parameters in the request
-	EmbedParams(r, embedded...)
+	EmbedParams(r, em...)
 
 	// extract the parameters from the request's context
-	extracted := httprouter.ParamsFromContext(r.Context())
+	ex := httprouter.ParamsFromContext(r.Context())
 
-	lm := len(embedded)
-	lx := len(extracted)
+	lm := len(em)
+	lx := len(ex)
 
 	if lm != lx {
 		t.Fatalf("Expected %d params. Actual: %d.", lm, lx)
@@ -286,8 +285,8 @@ func TestEmbedParams(t *testing.T) {
 
 	// loop and verify struct members
 	for i := 0; i < lm; i++ {
-		if embedded[i].Key != extracted[i].Key || embedded[i].Value != extracted[i].Value {
-			t.Fatalf("Expected: %+v. Actual: %+v.", embedded[i], extracted[i])
+		if em[i].Key != ex[i].Key || em[i].Value != ex[i].Value {
+			t.Fatalf("Expected: %+v. Actual: %+v.", em[i], ex[i])
 		}
 	}
 }
